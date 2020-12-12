@@ -7,19 +7,21 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
 )
 
 /*
 # プログラム仕様書
-1. 外部コマンドtarが使えるか確認。
+1.外部コマンドtarが使えるか確認。
 2.バックアップ対象一覧の確認
 	backup.txtに記載された複数行のディレクトリ名を読み取る。
 3.マインクラフトのセーブデータ場所に移動。
-	外出ししたテキストファイルからの読み取り？
+	外出ししたテキストファイルからの読み取り。
 4.上記1で読み込んだセーブディレクトリを順にtarで固める。
 5.固めたtarファイルを順にデスクトップに移動する。
+	もし、すでにアーカイブ(圧縮)ファイルがあれば、それをデスクトップに移動する。
 6.作業ディレクトリに戻る。
 
 ## 方針
@@ -125,6 +127,18 @@ func main() {
 					}
 				} else {
 					fmt.Println("セーブ対象用ディレクトリが存在しない", err)
+				}
+			} else {
+				// 既にファイルが存在する。
+				ext := path.Ext(saveDir.Name()) // 拡張子の抜き出し(http://golang.jp/pkg/path)。
+				switch ext {
+				case ".lzh", ".zip", ".cab", ".tar", ".gz", ".tgz", ".hqx", ".sit", ".Z", ".uu":
+					// 現在判明しているアーカイブファイルや圧縮ファイルをデスクトップに移動する。
+					//	参考URL：http://www.tohoho-web.com/ex/draft/extension.htm
+					err = os.Rename(saveDir.Name(), dirDesktopPath+saveDir.Name())
+					if err != nil {
+						fmt.Println("圧縮(アーカイブ)ファイルをデスクトップに移動失敗", err)
+					}
 				}
 			}
 			// fmt.Println("セーブ対象外ファイル", saveDir)
