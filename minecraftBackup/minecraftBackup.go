@@ -135,8 +135,12 @@ func main() {
 				case ".lzh", ".zip", ".cab", ".tar", ".gz", ".tgz", ".hqx", ".sit", ".Z", ".uu":
 					// 現在判明しているアーカイブファイルや圧縮ファイルをデスクトップに移動する。
 					//	参考URL：http://www.tohoho-web.com/ex/draft/extension.htm
-					err = os.Rename(saveDir.Name(), dirDesktopPath+saveDir.Name())
+					//					err = os.Rename(saveDir.Name(), dirDesktopPath+saveDir.Name())
+					// コピーすることにしたがリンクメソッドは使うのに前提があり、今回それを無視してるためパニックが発生する可能性がある。
+					//		参考URL：https://www.366service.com/jp/qa/bfe30aa7a814d994e834e4ea1a3bb561
+					err = os.Link(saveDir.Name(), dirDesktopPath+saveDir.Name())
 					if err != nil {
+						// Linkメソッドの場合、上書きが出来ないため、失敗する。
 						fmt.Println("圧縮(アーカイブ)ファイルをデスクトップに移動失敗", err)
 					}
 				}
@@ -154,6 +158,15 @@ func main() {
 			} else if dirTrueFalse, err := os.Stat(saveDir); os.IsNotExist(err) || !dirTrueFalse.IsDir() {
 				// ディレクトリではない。
 				fmt.Printf("指定のディレクトリ(\"%s\")が存在しない(もしくは、セーブデータPathの間違い)。\n", saveDir)
+				if err == nil {
+					// saveDirが存在した場合、コピーする。
+					err = os.Link(dirTrueFalse.Name(), dirDesktopPath+saveDir)
+					if err == nil {
+						fmt.Printf("しかし、指定ファイルが存在したため、バックアップ(%s)した。\n", saveDir)
+					} else {
+						//					fmt.Println("指定ファイルをデスクトップに移動失敗(既に存在しているため)", err)
+					}
+				}
 				continue
 			} else {
 				// 存在するディレクトリのため、これを使う。
